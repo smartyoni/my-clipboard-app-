@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나만의 클립보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        /* 전체적인 스타일 리셋 및 기본 설정 */
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-blue-color: #e7f1ff;
+            --background-color: #f0f2f5;
+            --card-bg-color: #ffffff;
+            --font-color: #212529;
+            --border-color: #dee2e6;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            background-color: var(--background-color);
+            color: var(--font-color);
+            font-size: 16px;
+        }
+
+        /* 메인 헤더 */
+        .main-header {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+        .main-header h1 {
+            font-size: 2rem;
+            color: var(--font-color);
+            margin: 0 0 0.5rem 0;
+        }
+        .main-header p {
+            font-size: 1rem;
+            color: var(--secondary-color);
+            margin: 0;
+        }
+
+        /* 2단 레이아웃 컨테이너 */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2rem;
+            padding: 0 2rem 2rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 카드 공통 스타일 */
+        .card {
+            background-color: var(--card-bg-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .card-header {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        /* 입력 폼 스타일 */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+        }
+        .form-control:focus {
+            border-color: var(--primary-color);
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+        }
+        textarea.form-control {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        /* 버튼 스타일 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all .2s;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .btn-primary:hover { background-color: #0b5ed7; }
+        .btn-full { width: 100%; }
+
+        /* 목록 스타일 */
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .tab-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            background: none;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+        }
+        .tab.active {
+            background-color: var(--light-blue-color);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .category-manage-btn {
+            background: none; border: 1px solid var(--border-color); border-radius: 5px; padding: 5px 8px; cursor: pointer; color: var(--secondary-color);
+        }
+
+        #memo-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .memo-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            background-color: var(--light-blue-color);
+            cursor: grab;
+        }
+        .memo-item:active { cursor: grabbing; }
+        .memo-icon { color: var(--secondary-color); }
+        .memo-title { flex-grow: 1; font-weight: 500; }
+        .memo-actions { display: flex; gap: 0.5rem; }
+        .memo-actions .btn { padding: 0.25rem 0.75rem; font-size: 0.9rem; }
+        .btn-copy { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+        .btn-edit { background-color: #fff3cd; color: #664d03; border-color: #ffecb5; }
+        .btn-delete { background-color: #f8d7da; color: #842029; border-color: #f5c2c7; }
+
+        /* 모달 스타일 */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: var(--card-bg-color); margin: 15% auto; padding: 2rem; border-radius: 8px; max-width: 500px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: slide-up 0.3s ease-out; }
+        @keyframes slide-up { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); }
+        .modal-title { font-size: 1.5rem; margin: 0; }
+        .close-btn { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+
+        /* 반응형 디자인 */
+        @media (max-width: 992px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 768px) {
+             .main-header { padding: 1rem; }
+             .main-container { padding: 0 1rem 1rem 1rem; }
+             .card { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <h1>☑️ 나만의 클립보드</h1>
+        <p>자주 사용하는 문구를 저장하고 빠르게 복사하세요.</p>
+    </header>
+    <div class="main-container">
+        <div class="card" id="input-card">
+            <h2 class="card-header">⊕ 새 클립 추가</h2>
+            <form id="add-memo-form">
+                <div class="form-group">
+                    <label for="add-memo-category">카테고리</label>
+                    <select id="add-memo-category" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                    <label for="add-memo-title">제목</label>
+                    <input type="text" id="add-memo-title" class="form-control" placeholder="예: 회사 주소" required>
+                </div>
+                <div class="form-group">
+                    <label for="add-memo-content">내용</label>
+                    <textarea id="add-memo-content" class="form-control" placeholder="예: 서울특별시 중구 세종대로 110"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">💾 클립 저장하기</button>
+            </form>
+        </div>
+        <div class="card" id="list-card">
+            <div class="list-header">
+                <h2 class="card-header" style="margin-bottom: 0;">📋 저장된 클립 목록</h2>
+                <button class="category-manage-btn" onclick="openCategoryModal()">카테고리 관리</button>
+            </div>
+            <div id="category-tabs" class="tab-container" style="margin-bottom: 1.5rem;"></div>
+            <ul id="memo-list"></ul>
+        </div>
+    </div>
+    <div id="edit-memo-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title" class="modal-title">클립 수정</h2>
+                <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="edit-memo-form">
+                <input type="hidden" id="edit-memo-id">
+                 <div class="form-group">
+                    <label for="edit-memo-category">카테고리</label>
+                    <select id="edit-memo-category" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-memo-title">제목</label>
+                    <input type="text" id="edit-memo-title" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-memo-content">내용</label>
+                    <textarea id="edit-memo-content" class="form-control"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">💾 변경사항 저장</button>
+            </form>
+        </div>
+    </div>
+    <div id="category-modal" class="modal">
+        </div>
+    <script>
+    // 전역 변수 및 DOM 요소
+    const addMemoForm = document.getElementById('add-memo-form');
+    const memoList = document.getElementById('memo-list');
+    const editMemoModal = document.getElementById('edit-memo-modal');
+    const editMemoForm = document.getElementById('edit-memo-form');
+    let currentCategoryId = null;
+    let categories = [];
+    let allMemos = {}; // 카테고리별 메모 캐싱
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadAndRenderAll();
+        setupEventListeners();
+        new Sortable(memoList, {
+            animation: 150,
+            handle: '.memo-icon', // 드래그 핸들 지정
+            onEnd: handleDragEnd
+        });
+    });
+    function setupEventListeners() {
+        addMemoForm.addEventListener('submit', handleAddMemo);
+        editMemoForm.addEventListener('submit', handleEditMemo);
+    }
+    async function loadAndRenderAll() {
+        await loadCategories();
+        if (categories.length > 0) {
+            const defaultCategory = categories.find(cat => cat.name === '일반') || categories[0];
+            currentCategoryId = currentCategoryId || defaultCategory.id;
+            renderTabs();
+            populateCategorySelects();
+            await loadMemos(currentCategoryId);
+        }
+    }
+    // API 통신
+    async function fetchData(url, options = {}) {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const errorData = await response.json();
+            alert(`오류: ${errorData.error}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    }
+    // 카테고리 로직
+    async function loadCategories() {
+        const data = await fetchData('/api/categories');
+        categories = data.categories;
+    }
+    function renderTabs() {
+        const categoryTabs = document.getElementById('category-tabs');
+        categoryTabs.innerHTML = '';
+        categories.forEach(cat => {
+            const tab = document.createElement('button');
+            tab.className = 'tab';
+            tab.textContent = cat.name;
+            if (cat.id === currentCategoryId) tab.classList.add('active');
+            tab.onclick = async () => {
+                currentCategoryId = cat.id;
+                renderTabs();
+                await loadMemos(cat.id);
+            };
+            categoryTabs.appendChild(tab);
+        });
+    }
+    function populateCategorySelects() {
+        const addSelect = document.getElementById('add-memo-category');
+        const editSelect = document.getElementById('edit-memo-category');
+        addSelect.innerHTML = editSelect.innerHTML = '';
+        categories.forEach(cat => {
+            const option = `<option value="${cat.id}">${cat.name}</option>`;
+            addSelect.innerHTML += option;
+            editSelect.innerHTML += option;
+        });
+    }
+    // 메모 로직
+    async function loadMemos(categoryId) {
+        const data = await fetchData(`/api/memos?category_id=${categoryId}`);
+        allMemos[categoryId] = data.memos;
+        renderMemos(allMemos[categoryId]);
+    }
+    function renderMemos(memos) {
+        memoList.innerHTML = '';
+        memos.forEach(memo => {
+            const li = document.createElement('li');
+            li.className = 'memo-item';
+            li.dataset.id = memo.id;
+            li.innerHTML = `
+                <span class="memo-icon">⠿</span>
+                <span class="memo-title">${memo.title}</span>
+                <div class="memo-actions">
+                    <button class="btn btn-copy" onclick="copyToClipboard(${memo.id}, event)">복사</button>
+                    <button class="btn btn-edit" onclick="openEditModal(${memo.id})">수정</button>
+                    <button class="btn btn-delete" onclick="deleteMemo(${memo.id})">삭제</button>
+                </div>
+            `;
+            memoList.appendChild(li);
+        });
+    }
+    // 새 메모 추가 핸들러
+    async function handleAddMemo(e) {
+        e.preventDefault();
+        const category_id = document.getElementById('add-memo-category').value;
+        const title = document.getElementById('add-memo-title').value;
+        const content = document.getElementById('add-memo-content').value;
+        await fetchData('/api/memos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, content, category_id: parseInt(category_id) })
+        });
+        addMemoForm.reset();
+        await loadMemos(currentCategoryId);
+    }
+    // 수정 모달 열기
+    function openEditModal(memoId) {
+        const memo = allMemos[currentCategoryId].find(m => m.id === memoId);
+        if (memo) {
+            document.getElementById('edit-memo-id').value = memo.id;
+            document.getElementById('edit-memo-title').value = memo.title;
+            document.getElementById('edit-memo-content').value = memo.content;
+            document.getElementById('edit-memo-category').value = memo.category_id;
+            editMemoModal.style.display = 'block';
+        }
+    }
+    function closeEditModal() { editMemoModal.style.display = 'none'; }
+    // 메모 수정 핸들러
+    async function handleEditMemo(e) {
+        e.preventDefault();
+        const id = document.getElementById('edit-memo-id').value;
+        const title = document.getElementById('edit-memo-title').value;
+        const content = document.getElementById('edit-memo-content').value;
+        const category_id = document.getElementById('edit-memo-category').value;
+        await fetchData(`/api/memos/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, content, category_id: parseInt(category_id) })
+        });
+        closeEditModal();
+        await loadAndRenderAll();
+    }
+    // 메모 삭제
+    async function deleteMemo(id) {
+        if (confirm('정말로 이 클립을 삭제하시겠습니까?')) {
+            await fetchData(`/api/memos/${id}`, { method: 'DELETE' });
+            await loadMemos(currentCategoryId);
+        }
+    }
+    // 드래그 종료 핸들러
+    function handleDragEnd(evt) {
+        const ordered_ids = Array.from(memoList.children).map(child => child.dataset.id);
+        fetchData('/api/memos/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ordered_ids })
+        });
+    }
+    // 클립보드 복사
+    function copyToClipboard(memoId, event) {
+        const memo = allMemos[currentCategoryId].find(m => m.id === memoId);
+        if (memo && navigator.clipboard) {
+            navigator.clipboard.writeText(memo.content).then(() => {
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✅ 복사완료!';
+                setTimeout(() => { button.textContent = originalText; }, 1500);
+            });
+        }
+    }
+    // 카테고리 관리 기능 (이전 코드 재사용, 생략)
+    // openCategoryModal(), closeCategoryModal() 등 필요
+    </script>
+</body>
+</html>
